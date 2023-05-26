@@ -2,13 +2,13 @@
 
 ### Resources
 
-* [Node JS getting started](#Node JS getting started)
-* [Process API doc](#Process API doc)
-* [Express getting started](#Express getting started)
-* [Mocha documentation](#Mocha documentation)
-* [Nodemon documentation](#Nodemon documentation)
+* [Node JS getting started](#node-JS-getting-started)
+* [Process API doc](#process-API-doc)
+* [Express getting started](#express-getting-started)
+* [Mocha documentation](#mocha-documentation)
+* [Nodemon documentation](#nodemon-documentation)
 * [MongoDB](#MongoDB)
 * [Bull](#Bull)
-* [Image thumbnail](#Image thumbnail)
+* [Image thumbnail](#image-thumbnail)
 * [Mime-Types](#Mime-Types)
 * [Redis](#Redis)
