@@ -2,7 +2,7 @@
 
 ### Resources
 
-* [Node JS getting started](#[Node JS getting started)
+* [Node JS getting started](#Node JS getting started)
 * [Process API doc](#Process API doc)
 * [Express getting started](#Express getting started)
 * [Mocha documentation](#Mocha documentation)
