@@ -12,3 +12,6 @@
 * [Image thumbnail](#image-thumbnail)
 * [Mime-Types](#Mime-Types)
 * [Redis](#Redis)
+
+### Authors 
+
