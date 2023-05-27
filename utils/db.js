@@ -11,8 +11,8 @@ class DBClient {
     this.redisClient = new MongoClient(url);
     this.redisClient.connect().then(() => {
       this.database = this.redisClient.db(`${DATABASE}`);
-    }).catch((err) => {
-      console.log(err);
+    }).catch((connectionError) => {
+      console.log(connectionError);
     });
   }
 
