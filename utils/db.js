@@ -1,8 +1,10 @@
 import { MongoClient } from 'mongodb';
+import Collection from 'mongodb/lib/collection';
+import envLoader from './env_loader';
 
 const HOST = process.env.DB_HOST || 'localhost';
 const PORT = process.env.DB_PORT || 27017;
-const url = `mongodb://${HOST}:${PORT}`;
+const dburl = `mongodb://${HOST}:${PORT}`;
 const DATABASE = process.env.DB_DATABASE || 'files_manager';
 
 
