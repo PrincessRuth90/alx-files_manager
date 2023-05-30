@@ -1,73 +1,81 @@
-import fs from 'fs';
-import Queue from 'bull';
-import { ObjectId } from 'mongodb';
-import imageThumbnail from 'image-thumbnail';
+import { writeFile } from 'fs';
+import { promisify } from 'util';
+import Queue from 'bull/lib/queue';
+import imgThumbnail from 'image-thumbnail';
+import mongoDBCore from 'mongodb/lib/core';
 import dbClient from './utils/db';
+import Mailer from './utils/mailer';
 
-const fileQueue = new Queue('file transcoding');
-const userQueue = new Queue('push-notification');
+const writeFileAsync = promisify(writeFile);
+const fileQueue = new Queue('thumbnail generation');
+const userQueue = new Queue('email sending');
 
-fileQueue.process('image-thumbnail', async (job, done) => {
-  if (!job.data.fileId) {
-    done(new Error('Missing fileId'));
-    return;
+/**
+ * Generates the image
+ * @param {String} filePath The location of the original file.
+ * @param {number} size The width of the thumbnail.
+ * @returns {Promise<void>}
+ */
+const generateThumbnail = async (filePath, size) => {
+  const buffer = await imgThumbnail(filePath, { width: size });
+  console.log(`Generating file: ${filePath}, size: ${size}`);
+  return writeFileAsync(`${filePath}_${size}`, buffer);
+};
+
+fileQueue.process(async (job, done) => {
+  const fileId = job.data.fileId || null;
+  const userId = job.data.userId || null;
+
+  if (!fileId) {
+    throw new Error('Missing fileId');
   }
-
-  if (!job.data.userId) {
-    done(new Error('Missing userId'));
-    return;
+  if (!userId) {
+    throw new Error('Missing userId');
   }
-
-  const file = await dbClient.collection('files').findOne({
-    _id: ObjectId(job.data.fileId),
-    userId: ObjectId(job.data.userId),
-  });
-
+  console.log('Processing', job.data.name || '');
+  const file = await (await dbClient.filesCollection())
+    .findOne({
+      _id: new mongoDBCore.BSON.ObjectId(fileId),
+      userId: new mongoDBCore.BSON.ObjectId(userId),
+    });
   if (!file) {
-    done(new Error('File not found'));
-    return;
+    throw new Error('File not found');
   }
-
-  try {
-    const data = await fs.promises.readFile(file.localPath);
-    const sizes = [500, 250, 100];
-    for (const size of sizes) {
-      imageThumbnail(data, { width: size })
-        .then((thumbnail) => {
-          fs.promises
-            .writeFile(`${file.localPath}_${size}`, thumbnail, {
-              encoding: 'base64',
-            })
-            .then(() => {
-              done();
-            })
-            .catch((error) => {
-              done(error);
-            });
-        })
-        .catch((error) => {
-          done(error);
-        });
-    }
-  } catch (error) {
-    done(error);
-  }
+  const sizes = [500, 250, 100];
+  Promise.all(sizes.map((size) => generateThumbnail(file.localPath, size)))
+    .then(() => {
+      done();
+    });
 });
 
-userQueue.process('push-email', async (job, done) => {
-  if (!job.data.userId) {
-    done(new Error('Missing userId'));
-    return;
+userQueue.process(async (job, done) => {
+  const userId = job.data.userId || null;
+
+  if (!userId) {
+    throw new Error('Missing userId');
   }
-
-  const user = await dbClient
-    .collection('users')
-    .findOne({ _id: ObjectId(job.data.userId) });
-
+  const user = await (await dbClient.usersCollection())
+    .findOne({ _id: new mongoDBCore.BSON.ObjectId(userId) });
   if (!user) {
-    done(new Error('User not found'));
-    return;
+    throw new Error('User not found');
   }
-
   console.log(`Welcome ${user.email}!`);
+  try {
+    const mailSubject = 'Welcome to ALX-Files_Manager done by Marcus Ruth and Vincent Ikechukwu';
+    const mailContent = [
+      '<div>',
+      '<h3>Hello {{user.name}},</h3>',
+      'Welcome to <a href="https://github.com/PrincessRuth90/alx-files_manager">',
+      'ALX-Files_Manager</a>, ',
+      'a simple file management API built with Node.js by ',
+      '<a href="https://github.com/PrincessRuth90">Marcus Ruth</a>. ',
+      '<a href="https://github.com/Ikechukwu-Unegbu">Vincent Ikechukwu</a>. ',
+      'We hope it meets your needs.',
+      '</div>',
+    ].join('');
+    Mailer.sendMail(Mailer.buildMessage(user.email, mailSubject, mailContent));
+    done();
+  } catch (err) {
+    done(err);
+  }
 });
